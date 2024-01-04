@@ -5,6 +5,15 @@ namespace Labb3Skolan.Models;
 
 public partial class StudentCourseGrade
 {
+    public StudentCourseGrade()
+    {
+        
+    }
+    public StudentCourseGrade(int sID, int cID)
+    {
+        FkstudentId = sID;
+        FkcourseId = cID;
+    }
     public int FkstudentId { get; set; }
 
     public int FkcourseId { get; set; }

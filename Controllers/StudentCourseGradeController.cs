@@ -1,8 +1,12 @@
-﻿using Labb3Skolan.Models;
+﻿using Databaser_Slutprojekt_FH.Models;
+using Labb3Skolan.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,34 +15,60 @@ namespace Labb3Skolan.Controllers
     internal class StudentCourseGradeController : BaseController
     {
         internal CourseController courseController = new CourseController();
-        internal IOrderedEnumerable<StudentCourseGrade> GetStudentGrades(int studentId, int order)
+        internal IOrderedEnumerable<StudentCourseGrade> GetStudentGrades(int studentId, int? courseId=null)
         {
             var allStudentGrades = context.Set<StudentCourseGrade>()
                 .Include(x => x.Fkstudent)
                 .Include(x => x.Fkgrade)
-                .Include(X => X.Fkcourse)
-                .Where(x => x.FkstudentId == studentId)
-                .ToList();
+                .Include(X => X.Fkcourse);
+            List<StudentCourseGrade> studentGrades;
+            if (courseId == null)
+            {
+                studentGrades = allStudentGrades.Where(x => x.FkstudentId == studentId).ToList();
 
-            var studentGrades = allStudentGrades.OrderBy(x => x.Fkgrade.GradeName);
-            if (order == 1/*"gradeasc"*/)
-            {
-                studentGrades=allStudentGrades.OrderBy(x => x.Fkgrade.GradeName);
             }
-            if (order == 2/*"gradedesc"*/)
+            else
             {
-                studentGrades=allStudentGrades.OrderByDescending(x => x.Fkgrade.GradeName);
+                studentGrades = allStudentGrades.Where(x => x.FkstudentId == studentId && x.FkcourseId == courseId).ToList();
             }
-            if (order == 3/*courseasc*/)
-            {
-                studentGrades=allStudentGrades.OrderBy(x => x.Fkcourse.CourseName);
-            }
-            if (order == 4/*"coursedesc"*/)
-            {
-                studentGrades=allStudentGrades.OrderByDescending(x => x.Fkcourse.CourseName);
-            }
-            return studentGrades;
+
+            var x = studentGrades.OrderBy(x => x.Fkcourse.CourseName);
+
+            return x;
         }
+        //This was a test 
+        //internal IEnumerable<Student> EFStoredProcedureTest(int studentId)
+        //{
+        //    var allStudentGrades = context.Database
+        //        .SqlQuery<Student>($"PR_ViewRawStudent @ID={studentId}");
+
+        //    var student = allStudentGrades.ToList();
+
+        //    return student;
+        //}
+        //This was a test 
+        //internal void ADOStoredProcedureTest(int studentId)
+        //{
+        //    SqlConnection con = new SqlConnection("Data Source=(localdb)\\MSSQLLocalDB;Database=SlotteGymnasiet;Trusted_Connection=True;MultipleActiveResultSets=true");
+        //    SqlCommand cmd = new SqlCommand("PR_ViewRawStudent", con);
+        //    cmd.CommandType = System.Data.CommandType.StoredProcedure;
+        //    cmd.Parameters.AddWithValue("@ID", studentId);
+        //    try
+        //    {
+        //        con.Open();
+
+        //        SqlDataReader reader = cmd.ExecuteReader();
+
+        //        while (reader.Read())
+        //        {
+        //            Console.WriteLine(reader[1]+ " " + reader[2]);
+        //        }
+        //    }
+        //    catch
+        //    {
+
+        //    }
+        //}
         //Created for possible future use
         internal IOrderedEnumerable<StudentCourseGrade> GetStudentGradesInCourse(int courseId, int order)
         {
@@ -115,16 +145,43 @@ namespace Labb3Skolan.Controllers
            
             return recentGrades;
         }
-        //Created for possible future use
+        internal void PrintStudentGrades()
+        {
+            Console.WriteLine("Input Student ID...");
+            int studentId;
+            int.TryParse(Console.ReadLine(), out studentId);
+            var studentGrades = GetStudentGrades(studentId);
+            var student = studentGrades.ToList().First();
+            Console.WriteLine($"" +
+                $"-------| Student |-------\n" +
+                $"Name: {student.Fkstudent.FirstName} {student.Fkstudent.LastName}\n" +
+                $"Age {DateTime.Now.Year - ((DateTime)student.Fkstudent.BirthDate).Year}\n" +
+                $"Gender: {student.Fkstudent.Gender}\n" +
+                $"-------| Courses |-------");
+            foreach (var item in studentGrades)
+            {
+                string date = string.Empty;
+                if (item.GradeDate != null) { date = ((DateTime)item.GradeDate).ToShortDateString(); }
+                Console.WriteLine(item.Fkcourse.CourseName + "\t" + item.Fkgrade.GradeName + "\n" + item.GradeTeacher + "\t" + date );
+                Console.WriteLine("-------------------------");
+            }
+        }
         internal void PrintStudentGrades(int studentId)
         {
-            Console.WriteLine("Order List by: ");
-            int order = MenuController.Menu("Grade Ascending","Grade Descending","Course Ascending","Course Descending");
-            var grades = GetStudentGrades(studentId,order);
-            Console.WriteLine("Name: " +grades.FirstOrDefault().Fkstudent.FirstName);
-            foreach (var item in grades)
+            var studentGrades = GetStudentGrades(studentId);
+            var student = studentGrades.ToList().First();
+            Console.WriteLine($"" +
+                $"-------| Student |-------\n" +
+                $"Name: {student.Fkstudent.FirstName} {student.Fkstudent.LastName}\n" +
+                $"Age {DateTime.Now.Year - ((DateTime)student.Fkstudent.BirthDate).Year}\n" +
+                $"Gender: {student.Fkstudent.Gender}\n" +
+                $"-------| Courses |-------");
+            foreach (var item in studentGrades)
             {
-                Console.WriteLine(item.Fkcourse.CourseName + "\t" + item.Fkgrade.GradeName);
+                string date = string.Empty;
+                if (item.GradeDate != null) { date = ((DateTime)item.GradeDate).ToShortDateString(); }
+                Console.WriteLine(item.Fkcourse.CourseName + "\t" + item.Fkgrade.GradeName + "\n" + item.GradeTeacher + "\t" + date);
+                Console.WriteLine("-------------------------");
             }
         }
         internal void PrintAverageCourseGrades()
@@ -182,10 +239,88 @@ namespace Labb3Skolan.Controllers
                 Console.WriteLine("Course: " + students.FirstOrDefault().Fkcourse.CourseName);
                 foreach (var item in students)
                 {
-                    Console.WriteLine(item.Fkstudent.FirstName + " " + item.Fkstudent.LastName);
+                    Console.WriteLine("ID: " + item.Fkstudent.StudentId + " Name: " + item.Fkstudent.FirstName + " " + item.Fkstudent.LastName);
                 }
             }
             else { Console.WriteLine("Selected Course NOT FOUND"); }
+        }
+        internal void PrintStudentsInCourse(int courseId)
+        {
+            if (courseController.GetCourses().Select(x => x.CourseId).Contains(courseId))
+            {
+                
+                var students = GetStudentsInCourse(courseId, 1);
+                Console.WriteLine("Course: " + students.FirstOrDefault().Fkcourse.CourseName);
+                foreach (var item in students)
+                {
+                    Console.WriteLine("ID: " + item.Fkstudent.StudentId + " Name: " + item.Fkstudent.FirstName + " " + item.Fkstudent.LastName);
+                }
+            }
+            else { Console.WriteLine("Selected Course NOT FOUND"); }
+        }
+        internal void AddStudentToCourse()
+        {
+            using var transaction = context.Database.BeginTransaction();
+            try
+            {
+
+                Console.WriteLine("Add Student to Course\n" +
+        "-------------------------");
+                Console.WriteLine("Enter Student ID: ");
+                int.TryParse(Console.ReadLine(), out int sID);
+
+                Console.WriteLine("-------------------------");
+                Console.WriteLine("Enter Course ID: ");
+                int.TryParse(Console.ReadLine(), out int cID);
+
+                StudentCourseGrade studentToCourse = new StudentCourseGrade(sID, cID);
+                context.Add(studentToCourse);
+                Console.WriteLine("Student Added to Course!");
+                context.SaveChanges();
+
+                transaction.Commit();
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("ERROR: Unable to add Student to Course, invalid input");
+                throw;
+            }
+
+        }
+        internal void SetGrade()
+        {
+            using var transaction = context.Database.BeginTransaction();
+            Console.WriteLine("Select a Course");
+            Console.WriteLine("Courses: \n");
+            foreach (var item in context.Courses)
+            {
+                Console.WriteLine("ID: " + item.CourseId + " Name: " + item.CourseName);
+            }
+            Console.Write("\nPlease enter course ID: ");
+            int.TryParse(Console.ReadLine(), out int courseId);
+            Console.Clear();
+            PrintStudentsInCourse(courseId);
+            Console.WriteLine("\nEnter a Student ID: ");
+            int.TryParse(Console.ReadLine(), out int studentId);
+            Console.Clear();
+            PrintStudentGrades(studentId);
+            try
+            {
+                var GradeConnectionTable = GetStudentGrades(studentId, courseId);
+                Console.WriteLine("Set Grade: ");
+                int grade = MenuController.Menu("-","G", "VG", "MVG", "IG");
+                GradeConnectionTable.FirstOrDefault().FkgradeId = grade;
+                GradeConnectionTable.FirstOrDefault().GradeDate = DateTime.Now;
+                Console.WriteLine("Enter Name of Teacher");
+                GradeConnectionTable.FirstOrDefault().GradeTeacher = Console.ReadLine();
+                context.SaveChanges();
+                transaction.Commit();
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Labb3Skolan.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,29 +40,42 @@ namespace Labb3Skolan.Controllers
             
             foreach (var item in studentList)
             {
-                Console.WriteLine(item.FirstName + " " + item.LastName);
+                Console.WriteLine("ID: " + item.StudentId +" | Name: "+ item.FirstName + " " + item.LastName);
             }
         }
         internal void AddStudent()
         {
+
+            using var transaction = context.Database.BeginTransaction();
+            try
+            {
+                Console.Write("Input First Name: ");
+                string firstName = Console.ReadLine();
+
+                Console.Write("Input Surname: ");
+                string lastName = Console.ReadLine();
+
+                string personalNumber = SetPersonalNumber();
+
+                Student student = new Student(firstName, lastName, personalNumber);
+                context.Students.Add(student);
+                Console.WriteLine("Student added!");
+                context.SaveChanges();
+
+                transaction.Commit();
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("ERROR: Unable to add User");
+                throw;
+            }
             
-            Console.Write("Input First Name: ");
-            string firstName = Console.ReadLine();
-
-            Console.Write("Input Surname: ");
-            string lastName = Console.ReadLine();
-
-            string personalNumber = SetPersonalNumber();
-
-            //Console.WriteLine("Select Role: ");
-            //int roleId = MenuController.Menu("Teacher", "Principal");
-
-            Student student = new Student(firstName, lastName, personalNumber);
-            context.Students.Add(student);
-            Console.WriteLine("Student added!");
-            context.SaveChanges();
-
-            //Need to create another method to add student to existing courses 
         }
+        //internal Student GetStudentID(int iD)
+        //{
+        //    var student = context.Set<Student>()
+        //        .Where(x => x.StudentId == iD).FirstOrDefault();
+        //    return student;
+        //}
     }
 }

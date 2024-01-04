@@ -90,5 +90,6 @@ namespace Labb3Skolan.Controllers
                 4=> "MVG"
             };
         }
+
     }
 }
